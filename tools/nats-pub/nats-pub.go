@@ -43,8 +43,10 @@ var zitiContext ziti.Context
 type customDialer struct {
 }
 
+var zitiService *string
+
 func (cd *customDialer) Dial(_, _ string) (net.Conn, error) {
-	conn, err := zitiContext.Dial("nats")
+	conn, err := zitiContext.Dial(*zitiService)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +54,8 @@ func (cd *customDialer) Dial(_, _ string) (net.Conn, error) {
 }
 
 func main() {
-	var urls = flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma)")
+	var urls = flag.String("s", nats.DefaultURL, "The nats server ziti service name")
+	zitiService = urls
 	var userCreds = flag.String("creds", "", "User Credentials File")
 	var showHelp = flag.Bool("h", false, "Show help message")
 
