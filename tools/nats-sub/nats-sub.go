@@ -15,12 +15,16 @@ package main
 
 import (
 	"flag"
+	"github.com/openziti/sdk-golang/ziti/config"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"time"
 
 	"github.com/nats-io/nats.go"
+
+	"github.com/openziti/sdk-golang/ziti"
 )
 
 // NOTE: Can test with demo servers.
@@ -39,6 +43,19 @@ func showUsageAndExit(exitcode int) {
 
 func printMsg(m *nats.Msg, i int) {
 	log.Printf("[#%d] Received on [%s]: '%s'", i, m.Subject, string(m.Data))
+}
+
+var zitiContext ziti.Context
+
+type customDialer struct {
+}
+
+func (cd *customDialer) Dial(_, _ string) (net.Conn, error) {
+	conn, err := zitiContext.Dial("nats")
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
 func main() {
@@ -63,6 +80,16 @@ func main() {
 	// Connect Options.
 	opts := []nats.Option{nats.Name("NATS Sample Subscriber")}
 	opts = setupConnOptions(opts)
+
+	cfg, err := config.NewFromFile(`c:\temp\nats\subid.json`)
+	if err != nil {
+		log.Fatalf("oh no problemmo: %v", err)
+	}
+	zitiContext = ziti.NewContextWithConfig(cfg)
+
+	zitiDialer := &customDialer{}
+	cdoption := nats.SetCustomDialer(zitiDialer)
+	opts = append(opts, cdoption)
 
 	// Use UserCredentials
 	if *userCreds != "" {
